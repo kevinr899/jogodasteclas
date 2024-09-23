@@ -1,0 +1,90 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+#game-container {
+    text-align: center;
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    width: 600px;
+    height: 550px; /* Aumenta a altura para incluir a fase */
+    position: relative;
+}
+
+h1 {
+    font-size: 36px;
+    margin-bottom: 20px;
+}
+
+#start-button, #next-phase-button {
+    font-size: 18px;
+    padding: 10px 20px;
+    margin-bottom: 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#start-button:hover, #next-phase-button:hover {
+    background-color: #45a049;
+}
+
+#next-phase-button.hidden {
+    display: none;
+}
+
+#phase {
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+#instruction {
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+#target-key {
+    font-size: 96px; /* Tamanho grande para visibilidade */
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+#key-display {
+    display: inline-block;
+}
+
+#time, #score {
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+#message {
+    font-size: 24px;
+    font-weight: bold;
+    color: red;
+}
+
+#error-message {
+    font-size: 24px;
+    color: red;
+    margin-top: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Estilo para teclas maiúsculas */
+.uppercase {
+    font-size: 96px; /* Maior para teclas maiúsculas */
+}

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo das Teclas</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        #game-container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            width: 600px;
+            height: 650px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        #start-button, #next-phase-button {
+            font-size: 18px;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #start-button:hover, #next-phase-button:hover {
+            background-color: #45a049;
+        }
+
+        #next-phase-button.hidden {
+            display: none;
+        }
+
+        #phase {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        #instruction {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        #target-key {
+            font-size: 96px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        #key-display {
+            display: inline-block;
+        }
+
+        #time, #score, #combo {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        #message {
+            font-size: 24px;
+            font-weight: bold;
+            color: red;
+        }
+
+        #error-message {
+            font-size: 24px;
+            color: red;
+            margin-top: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Pressione as Teclas!</h1>
+        <button id="start-button">Iniciar Jogo</button>
+        <button id="next-phase-button" class="hidden">Próxima Fase</button>
+        <div id="phase">Fase 1</div>
+        <div id="instruction">Pressione a tecla:</div>
+        <div id="target-key">
+            <span id="key-display">A</span>
+        </div>
+        <div id="time">Tempo Restante: <span id="timer">50</span>s</div>
+        <div id="score">Pontuação: <span id="score-value">0</span></div>
+        <div id="combo">Teclas Seguidas: <span id="combo-value">0</span></div>
+        <div id="message"></div>
+        <div id="error-message" class="hidden">Pressione a tecla correta!</div>
+    </div>
+    <script>
+        const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        const numbers = '0123456789'.split('');
+        const allKeys = [...letters, ...numbers];
+        let score = 0;
+        let currentPhase = 1;
+        const gameDuration = 50;
+        let timeRemaining;
+        let intervalId;
+        let targetKeyElement = document.getElementById('key-display');
+        let errorMessageElement = document.getElementById('error-message');
+        let timerElement = document.getElementById('timer');
+        let scoreElement = document.getElementById('score-value');
+        let messageElement = document.getElementById('message');
+        let phaseElement = document.getElementById('phase');
+        let startButton = document.getElementById('start-button');
+        let nextPhaseButton = document.getElementById('next-phase-button');
+        let comboElement = document.getElementById('combo-value');
+
+        const phaseGoals = [30, 35, 42];
+        let comboCount = 0;
+
+        function getRandomKey() {
+            if (currentPhase === 1) {
+                return letters[Math.floor(Math.random() * letters.length)];
+            } else if (currentPhase === 2) {
+                return numbers[Math.floor(Math.random() * numbers.length)];
+            } else {
+                return allKeys[Math.floor(Math.random() * allKeys.length)];
+            }
+        }
+
+        function initializeGame() {
+            currentPhase = 1;
+            score = 0;
+            comboCount = 0;
+            resetGame();
+            startPhase();
+        }
+
+        function resetGame() {
+            phaseElement.textContent = `Fase ${currentPhase}`;
+            startButton.style.display = 'none';
+            nextPhaseButton.classList.add('hidden');
+            scoreElement.textContent = score;
+            timerElement.textContent = gameDuration;
+            comboElement.textContent = comboCount;
+            messageElement.textContent = '';
+            errorMessageElement.classList.add('hidden');
+            targetKeyElement.textContent = getRandomKey();
+        }
+
+        function startPhase() {
+            timeRemaining = gameDuration;
+            intervalId = setInterval(() => {
+                timeRemaining--;
+                timerElement.textContent = Math.max(timeRemaining, 0);
+                if (timeRemaining <= 0) {
+                    clearInterval(intervalId);
+                    checkPhaseCompletion();
+                }
+            }, 1000);
+
+            document.removeEventListener('keydown', handleKeyPress);
+            document.addEventListener('keydown', handleKeyPress);
+        }
+
+        function handleKeyPress(event) {
+            const targetKey = targetKeyElement.textContent;
+
+            // Ignorar Shift e Caps Lock
+            if (event.key === 'Shift' || event.key === 'CapsLock') {
+                return;
+            }
+
+            if (event.key === targetKey) {
+                score++;
+                scoreElement.textContent = score;
+                errorMessageElement.classList.add('hidden');
+                targetKeyElement.textContent = getRandomKey();
+                comboCount++;
+                comboElement.textContent = comboCount;
+
+                // Adiciona 0,5 segundos a cada tecla seguida na Fase 4
+                if (currentPhase === 4) {
+                    timeRemaining += 0.5;
+                }
+
+                if (score >= phaseGoals[currentPhase - 1]) {
+                    clearInterval(intervalId);
+                    checkPhaseCompletion();
+                }
+            } else {
+                errorMessageElement.classList.remove('hidden');
+                comboCount = 0; // Reseta o contador de teclas seguidas
+                comboElement.textContent = comboCount;
+            }
+        }
+
+        function checkPhaseCompletion() {
+            if (currentPhase < 3 && score >= phaseGoals[currentPhase - 1]) {
+                messageElement.textContent = `Parabéns! Você concluiu a Fase ${currentPhase}.`;
+                nextPhaseButton.classList.remove('hidden');
+            } else if (currentPhase === 3) {
+                messageElement.textContent = `Parabéns! Você concluiu a Fase ${currentPhase}. Agora você está prestes a entrar na Fase 4!`;
+                messageElement.textContent += ' Nesta fase, você terá 50 segundos, não haverá limite de pontuação e acertos seguidos darão 0,5 segundos a mais.';
+                nextPhaseButton.classList.remove('hidden');
+            } else {
+                messageElement.textContent = 'Você não atingiu a meta de pontos.';
+            }
+            document.removeEventListener('keydown', handleKeyPress);
+        }
+
+        function goToNextPhase() {
+            currentPhase++;
+            score = 0;
+            comboCount = 0;
+            resetGame();
+            startPhase();
+        }
+
+        startButton.addEventListener('click', () => {
+            initializeGame();
+        });
+
+        nextPhaseButton.addEventListener('click', () => {
+            goToNextPhase();
+        });
+    </script>
+</body>
+</html>
