@@ -26,12 +26,23 @@
             position: relative;
         }
 
+        #scoreboard-container {
+            margin-right: 20px;
+            text-align: left;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background: white;
+            height: 650px;
+            overflow-y: auto;
+        }
+
         h1 {
             font-size: 36px;
             margin-bottom: 20px;
         }
 
-        #start-button, #next-phase-button {
+        #start-button, #next-phase-button, .phase-button {
             font-size: 18px;
             padding: 10px 20px;
             margin-bottom: 20px;
@@ -42,7 +53,7 @@
             cursor: pointer;
         }
 
-        #start-button:hover, #next-phase-button:hover {
+        #start-button:hover, #next-phase-button:hover, .phase-button:hover {
             background-color: #45a049;
         }
 
@@ -50,12 +61,7 @@
             display: none;
         }
 
-        #phase {
-            font-size: 24px;
-            margin-bottom: 15px;
-        }
-
-        #instruction {
+        #phase, #scoreboard {
             font-size: 24px;
             margin-bottom: 15px;
         }
@@ -64,10 +70,6 @@
             font-size: 96px;
             font-weight: bold;
             margin: 20px 0;
-        }
-
-        #key-display {
-            display: inline-block;
         }
 
         #time, #score, #combo {
@@ -87,15 +89,37 @@
             margin-top: 20px;
         }
 
+        #record-message {
+            font-size: 20px;
+            color: green;
+            margin-top: 20px;
+        }
+
+        #name-input {
+            display: none;
+            margin-top: 20px;
+        }
+
         .hidden {
             display: none;
         }
     </style>
 </head>
 <body>
+    <div id="scoreboard-container">
+        <h1>Recordes</h1>
+        <div id="scoreboard"></div>
+    </div>
     <div id="game-container">
         <h1>Pressione as Teclas!</h1>
+        <div id="score">Pontuação: <span id="score-value">0</span></div>
         <button id="start-button">Iniciar Jogo</button>
+        <div>
+            <button class="phase-button" data-phase="1">Fase 1</button>
+            <button class="phase-button" data-phase="2">Fase 2</button>
+            <button class="phase-button" data-phase="3">Fase 3</button>
+            <button class="phase-button" data-phase="4">Fase 4</button>
+        </div>
         <button id="next-phase-button" class="hidden">Próxima Fase</button>
         <div id="phase">Fase 1</div>
         <div id="instruction">Pressione a tecla:</div>
@@ -103,15 +127,17 @@
             <span id="key-display">A</span>
         </div>
         <div id="time">Tempo Restante: <span id="timer">50</span>s</div>
-        <div id="score">Pontuação: <span id="score-value">0</span></div>
         <div id="combo">Teclas Seguidas: <span id="combo-value">0</span></div>
         <div id="message"></div>
         <div id="error-message" class="hidden">Pressione a tecla correta!</div>
+        <div id="record-message" class="hidden">Parabéns! Você bateu o recorde! Digite seu nome:</div>
+        <input type="text" id="name-input" maxlength="20">
     </div>
     <script>
         const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
         const numbers = '0123456789'.split('');
         const allKeys = [...letters, ...numbers];
+        const allKeysNoAccents = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('');
         let score = 0;
         let currentPhase = 1;
         const gameDuration = 50;
@@ -126,22 +152,30 @@
         let startButton = document.getElementById('start-button');
         let nextPhaseButton = document.getElementById('next-phase-button');
         let comboElement = document.getElementById('combo-value');
+        let scoreboardElement = document.getElementById('scoreboard');
+        let recordMessageElement = document.getElementById('record-message');
+        let nameInputElement = document.getElementById('name-input');
 
         const phaseGoals = [30, 35, 42];
         let comboCount = 0;
+        let highScore = 0;
+        let playerName = '';
+        let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
 
         function getRandomKey() {
             if (currentPhase === 1) {
                 return letters[Math.floor(Math.random() * letters.length)];
             } else if (currentPhase === 2) {
                 return numbers[Math.floor(Math.random() * numbers.length)];
-            } else {
+            } else if (currentPhase === 3 || currentPhase === 4) {
+                if (currentPhase === 4 && score >= 100) {
+                    return allKeysNoAccents[Math.floor(Math.random() * allKeysNoAccents.length)];
+                }
                 return allKeys[Math.floor(Math.random() * allKeys.length)];
             }
         }
 
         function initializeGame() {
-            currentPhase = 1;
             score = 0;
             comboCount = 0;
             resetGame();
@@ -191,9 +225,11 @@
                 comboCount++;
                 comboElement.textContent = comboCount;
 
-                // Adiciona 0,5 segundos a cada tecla seguida na Fase 4
+                // Adiciona 0,5 segundos a cada tecla seguida após o segundo acerto
                 if (currentPhase === 4) {
-                    timeRemaining += 0.5;
+                    if (comboCount > 2) {
+                        timeRemaining += 0.5;
+                    }
                 }
 
                 if (score >= phaseGoals[currentPhase - 1]) {
@@ -202,6 +238,7 @@
                 }
             } else {
                 errorMessageElement.classList.remove('hidden');
+                timeRemaining -= 1; // Perde 1 segundo a cada erro
                 comboCount = 0; // Reseta o contador de teclas seguidas
                 comboElement.textContent = comboCount;
             }
@@ -213,12 +250,42 @@
                 nextPhaseButton.classList.remove('hidden');
             } else if (currentPhase === 3) {
                 messageElement.textContent = `Parabéns! Você concluiu a Fase ${currentPhase}. Agora você está prestes a entrar na Fase 4!`;
-                messageElement.textContent += ' Nesta fase, você terá 50 segundos, não haverá limite de pontuação e acertos seguidos darão 0,5 segundos a mais.';
+                messageElement.textContent += ' Nesta fase, acertos seguidos dão 0,5 segundos a mais!';
                 nextPhaseButton.classList.remove('hidden');
             } else {
                 messageElement.textContent = 'Você não atingiu a meta de pontos.';
+                displayFinalScore();
             }
             document.removeEventListener('keydown', handleKeyPress);
+        }
+
+        function displayFinalScore() {
+            if (score > highScore) {
+                highScore = score;
+                recordMessageElement.classList.remove('hidden');
+                nameInputElement.style.display = 'block';
+            }
+            updateScoreboard();
+        }
+
+        function submitName() {
+            playerName = nameInputElement.value;
+            leaderboard.push({ name: playerName, score: highScore });
+            updateScoreboard();
+            nameInputElement.value = '';
+            recordMessageElement.classList.add('hidden');
+            nameInputElement.style.display = 'none';
+            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+        }
+
+        function updateScoreboard() {
+            leaderboard.sort((a, b) => b.score - a.score);
+            scoreboardElement.innerHTML = '';
+            leaderboard.forEach(entry => {
+                const newScore = document.createElement('div');
+                newScore.textContent = `${entry.name}: ${entry.score}`;
+                scoreboardElement.appendChild(newScore);
+            });
         }
 
         function goToNextPhase() {
@@ -233,9 +300,25 @@
             initializeGame();
         });
 
+        document.querySelectorAll('.phase-button').forEach(button => {
+            button.addEventListener('click', () => {
+                currentPhase = parseInt(button.getAttribute('data-phase'));
+                initializeGame();
+            });
+        });
+
         nextPhaseButton.addEventListener('click', () => {
             goToNextPhase();
         });
+
+        nameInputElement.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                submitName();
+            }
+        });
+
+        // Atualiza o placar ao carregar a página
+        updateScoreboard();
     </script>
 </body>
 </html>
