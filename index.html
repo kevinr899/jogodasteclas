@@ -42,7 +42,7 @@
             margin-bottom: 20px;
         }
 
-        #start-button, #next-phase-button {
+        #start-button {
             font-size: 18px;
             padding: 10px 20px;
             margin-bottom: 20px;
@@ -53,15 +53,11 @@
             cursor: pointer;
         }
 
-        #start-button:hover, #next-phase-button:hover {
+        #start-button:hover {
             background-color: #45a049;
         }
 
-        #next-phase-button.hidden {
-            display: none;
-        }
-
-        #phase, #scoreboard {
+        #phase {
             font-size: 24px;
             margin-bottom: 15px;
         }
@@ -114,7 +110,6 @@
         <h1>Pressione as Teclas!</h1>
         <div id="score">Pontuação: <span id="score-value">0</span></div>
         <button id="start-button">Iniciar Jogo</button>
-        <button id="next-phase-button" class="hidden">Próxima Fase</button>
         <div id="phase">Fase 1</div>
         <div id="instruction">Pressione a tecla:</div>
         <div id="target-key">
@@ -135,6 +130,7 @@
         let score = 0;
         let currentPhase = 1;
         const gameDuration = 50;
+        const phase4Duration = 30; // Duração da fase 4
         let timeRemaining;
         let intervalId;
         let targetKeyElement = document.getElementById('key-display');
@@ -144,7 +140,6 @@
         let messageElement = document.getElementById('message');
         let phaseElement = document.getElementById('phase');
         let startButton = document.getElementById('start-button');
-        let nextPhaseButton = document.getElementById('next-phase-button');
         let comboElement = document.getElementById('combo-value');
         let scoreboardElement = document.getElementById('scoreboard');
         let recordMessageElement = document.getElementById('record-message');
@@ -162,9 +157,6 @@
             } else if (currentPhase === 2) {
                 return numbers[Math.floor(Math.random() * numbers.length)];
             } else if (currentPhase === 3 || currentPhase === 4) {
-                if (currentPhase === 4 && score >= 100) {
-                    return allKeysNoAccents[Math.floor(Math.random() * allKeysNoAccents.length)];
-                }
                 return allKeys[Math.floor(Math.random() * allKeys.length)];
             }
         }
@@ -179,9 +171,8 @@
         function resetGame() {
             phaseElement.textContent = `Fase ${currentPhase}`;
             startButton.style.display = 'none';
-            nextPhaseButton.classList.add('hidden');
             scoreElement.textContent = score;
-            timerElement.textContent = gameDuration;
+            timerElement.textContent = currentPhase === 4 ? phase4Duration : gameDuration;
             comboElement.textContent = comboCount;
             messageElement.textContent = '';
             errorMessageElement.classList.add('hidden');
@@ -189,15 +180,27 @@
         }
 
         function startPhase() {
-            timeRemaining = gameDuration;
-            intervalId = setInterval(() => {
-                timeRemaining--;
-                timerElement.textContent = Math.max(timeRemaining, 0);
-                if (timeRemaining <= 0) {
-                    clearInterval(intervalId);
-                    checkPhaseCompletion();
-                }
-            }, 1000);
+            timeRemaining = currentPhase === 4 ? phase4Duration : gameDuration;
+            if (currentPhase === 4) {
+                messageElement.textContent = 'Fase 4: A fase é infinita! Pressione as teclas!';
+                intervalId = setInterval(() => {
+                    timeRemaining--;
+                    timerElement.textContent = Math.max(timeRemaining, 0);
+                    if (timeRemaining <= 0) {
+                        clearInterval(intervalId);
+                        displayFinalScore();
+                    }
+                }, 1000);
+            } else {
+                intervalId = setInterval(() => {
+                    timeRemaining--;
+                    timerElement.textContent = Math.max(timeRemaining, 0);
+                    if (timeRemaining <= 0) {
+                        clearInterval(intervalId);
+                        checkPhaseCompletion();
+                    }
+                }, 1000);
+            }
 
             document.removeEventListener('keydown', handleKeyPress);
             document.addEventListener('keydown', handleKeyPress);
@@ -226,13 +229,15 @@
                     }
                 }
 
-                if (score >= phaseGoals[currentPhase - 1]) {
+                if (currentPhase < 4 && score >= phaseGoals[currentPhase - 1]) {
                     clearInterval(intervalId);
                     checkPhaseCompletion();
                 }
             } else {
                 errorMessageElement.classList.remove('hidden');
-                timeRemaining -= 1; // Perde 1 segundo a cada erro
+                if (currentPhase === 4) {
+                    timeRemaining -= 1; // Perde 1 segundo a cada erro
+                }
                 comboCount = 0; // Reseta o contador de teclas seguidas
                 comboElement.textContent = comboCount;
             }
@@ -241,19 +246,15 @@
         function checkPhaseCompletion() {
             if (currentPhase < 4 && score >= phaseGoals[currentPhase - 1]) {
                 messageElement.textContent = `Parabéns! Você concluiu a Fase ${currentPhase}.`;
-                nextPhaseButton.classList.remove('hidden');
-            } else if (currentPhase === 4) {
-                messageElement.textContent = 'Você completou a Fase 4!';
-                displayFinalScore();
+                startPhase();
             } else {
-                messageElement.textContent = 'Você não atingiu a meta de pontos.';
                 displayFinalScore();
             }
             document.removeEventListener('keydown', handleKeyPress);
         }
 
         function displayFinalScore() {
-            if (score > highScore) {
+            if (currentPhase === 4 && score > highScore) {
                 highScore = score;
                 recordMessageElement.classList.remove('hidden');
                 nameInputElement.style.display = 'block';
@@ -262,13 +263,17 @@
         }
 
         function submitName() {
-            playerName = nameInputElement.value;
-            leaderboard.push({ name: playerName, score: highScore });
-            updateScoreboard();
-            nameInputElement.value = '';
-            recordMessageElement.classList.add('hidden');
-            nameInputElement.style.display = 'none';
-            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+            playerName = nameInputElement.value.trim();
+            if (playerName) {
+                leaderboard.push({ name: playerName, score: highScore });
+                localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+                updateScoreboard();
+                resetGame();
+                initializeGame();
+                recordMessageElement.classList.add('hidden');
+                nameInputElement.style.display = 'none';
+                comboCount = 0; // Resetar contador de combo
+            }
         }
 
         function updateScoreboard() {
@@ -281,20 +286,8 @@
             });
         }
 
-        function goToNextPhase() {
-            currentPhase++;
-            score = 0;
-            comboCount = 0;
-            resetGame();
-            startPhase();
-        }
-
         startButton.addEventListener('click', () => {
             initializeGame();
-        });
-
-        nextPhaseButton.addEventListener('click', () => {
-            goToNextPhase();
         });
 
         nameInputElement.addEventListener('keydown', (event) => {
