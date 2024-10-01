@@ -42,7 +42,7 @@
             margin-bottom: 20px;
         }
 
-        #start-button {
+        #start-button, #instructions-button, #credits-button {
             font-size: 18px;
             padding: 10px 20px;
             margin-bottom: 20px;
@@ -53,7 +53,7 @@
             cursor: pointer;
         }
 
-        #start-button:hover {
+        #start-button:hover, #instructions-button:hover, #credits-button:hover {
             background-color: #45a049;
         }
 
@@ -99,6 +99,41 @@
         .hidden {
             display: none;
         }
+
+        /* Estilo do Modal */
+        #instructions-modal, #credits-modal {
+            display: none; /* Escondido por padrão */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 400px;
+            text-align: left;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .close {
+            color: red;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: darkred;
+        }
     </style>
 </head>
 <body>
@@ -110,6 +145,8 @@
         <h1>Pressione as Teclas!</h1>
         <div id="score">Pontuação: <span id="score-value">0</span></div>
         <button id="start-button">Iniciar Jogo</button>
+        <button id="instructions-button">Como Jogar</button>
+        <button id="credits-button">Créditos</button> <!-- Novo botão -->
         <div id="phase">Fase 1</div>
         <div id="instruction">Pressione a tecla:</div>
         <div id="target-key">
@@ -122,6 +159,29 @@
         <div id="record-message" class="hidden">Parabéns! Você bateu o recorde! Digite seu nome:</div>
         <input type="text" id="name-input" maxlength="20">
     </div>
+
+    <!-- Modal de Instruções -->
+    <div id="instructions-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Como Jogar</h2>
+            <p>O objetivo do jogo é pressionar a tecla que aparece na tela dentro do tempo limite.</p>
+            <p>Você começará na Fase 1, onde precisa pressionar letras. Conforme avança, as fases mudarão e incluirão números e combinações.</p>
+            <p>Para cada tecla correta pressionada, sua pontuação aumentará. Tente conseguir combos para ganhar mais tempo!</p>
+            <p>Se você errar, perderá tempo. O jogo termina quando o tempo acabar.</p>
+            <p><strong>Divirta-se!</strong></p>
+        </div>
+    </div>
+
+    <!-- Modal de Créditos -->
+    <div id="credits-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Créditos</h2>
+            <p>Desenvolvedor: Kevin Rocha de Oliveira</p>
+        </div>
+    </div>
+
     <script>
         const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
         const numbers = '0123456789'.split('');
@@ -293,6 +353,37 @@
         nameInputElement.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 submitName();
+            }
+        });
+
+        // Função para abrir o modal de instruções
+        const instructionsButton = document.getElementById('instructions-button');
+        const instructionsModal = document.getElementById('instructions-modal');
+        const closeModal = document.querySelector('.close');
+
+        instructionsButton.addEventListener('click', () => {
+            instructionsModal.style.display = 'flex';
+        });
+
+        // Função para abrir o modal de créditos
+        const creditsButton = document.getElementById('credits-button');
+        const creditsModal = document.getElementById('credits-modal');
+
+        creditsButton.addEventListener('click', () => {
+            creditsModal.style.display = 'flex';
+        });
+
+        // Função para fechar o modal
+        closeModal.addEventListener('click', () => {
+            instructionsModal.style.display = 'none';
+            creditsModal.style.display = 'none';
+        });
+
+        // Fechar o modal se clicar fora dele
+        window.addEventListener('click', (event) => {
+            if (event.target === instructionsModal || event.target === creditsModal) {
+                instructionsModal.style.display = 'none';
+                creditsModal.style.display = 'none';
             }
         });
 
